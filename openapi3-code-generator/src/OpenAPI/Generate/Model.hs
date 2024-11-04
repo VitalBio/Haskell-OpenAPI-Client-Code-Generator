@@ -774,30 +774,36 @@ propertiesToBangTypes _ [] _ = pure (pure [], emptyDoc, Set.empty)
 propertiesToBangTypes schemaName props required = OAM.nested "properties" $ do
   propertySuffix <- OAM.getSetting OAO.settingPropertyTypeSuffix
   convertToCamelCase <- OAM.getSetting OAO.settingConvertToCamelCase
-  let createBang :: Text -> Text -> Q Type -> Q VarBangType
+  let createBang :: Maybe Text -> Text -> Q Type -> Q VarBangType
       createBang recordName propName myType = do
         bang' <- bang noSourceUnpackedness noSourceStrictness
-        type' <-
-          if recordName `Set.member` required
-            then myType
-            else appT (varT ''Maybe) myType
+        type' <- case flip Set.member required <$> recordName of
+          Nothing -> myType
+          Just True -> myType
+          Just False -> appT (varT ''Maybe) myType
         pure (haskellifyName convertToCamelCase False propName, bang', type')
-      propToBangType :: (Text, OAS.Schema) -> OAM.Generator (Q VarBangType, Q Doc, Dep.Models)
+      propToBangType :: (Maybe Text, OAS.Schema) -> OAM.Generator (Q VarBangType, Q Doc, Dep.Models)
       propToBangType (recordName, schema) = do
-        let propName = schemaName <> uppercaseFirstText recordName
-        (myType, (content, depenencies)) <- OAM.nested recordName $ defineModelForSchemaNamed (propName <> propertySuffix) schema
+        let propName = schemaName <> maybe "" uppercaseFirstText recordName
+        (myType, (content, dependencies)) <-
+          OAM.nested (Maybe.fromMaybe "single field" recordName) $
+            defineModelForSchemaNamed (propName <> propertySuffix) schema
         let myBang = createBang recordName propName myType
-        pure (myBang, content, depenencies)
+        pure (myBang, content, dependencies)
       foldFn :: OAM.Generator BangTypesSelfDefined -> (Text, OAS.Schema) -> OAM.Generator BangTypesSelfDefined
-      foldFn accHolder next = do
+      foldFn accHolder (nextRecordName, nextSchema) = do
         (varBang, content, dependencies) <- accHolder
-        (nextVarBang, nextContent, nextDependencies) <- propToBangType next
+        (nextVarBang, nextContent, nextDependencies) <- propToBangType (Just nextRecordName, nextSchema)
         pure
           ( varBang `liftedAppend` fmap pure nextVarBang,
             content `appendDoc` nextContent,
             Set.union dependencies nextDependencies
           )
-  foldl foldFn (pure (pure [], emptyDoc, Set.empty)) props
+  case props of
+    [(_field, prop)] -> do
+      (varBang, content, dependencies) <- propToBangType (Nothing, prop)
+      pure (fmap pure varBang, content, dependencies)
+    _ -> foldl foldFn (pure (pure [], emptyDoc, Set.empty)) props
 
 getDescriptionOfSchema :: OAS.SchemaObject -> Text
 getDescriptionOfSchema schema = Doc.escapeText $ Maybe.fromMaybe "" $ OAS.schemaObjectDescription schema
