@@ -391,7 +391,7 @@ defineOneOfSchema schemaName description schemas = do
       getConstructorName (typ, n) = do
         t <- typ
         let suffix = if OAO.settingUseNumberedVariantConstructors settings then "Variant" <> T.pack (show n) else typeToSuffix t
-        pure $ haskellifyConstructor $ schemaName <> suffix
+        pure $ haskellifyConstructor suffix
       constructorNames = fmap getConstructorName indexedTypes
       createTypeConstruct (typ, n) = do
         t <- typ
