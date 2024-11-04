@@ -398,10 +398,7 @@ defineOneOfSchema schemaName description schemas = do
         bang' <- bang noSourceUnpackedness noSourceStrictness
         haskellifiedName <- getConstructorName (typ, n)
         normalC haskellifiedName [pure (bang', t)]
-      createConstructorNameForSchemaWithFixedValue =
-        haskellifyConstructor
-          . (schemaName <>)
-          . aesonValueToName
+      createConstructorNameForSchemaWithFixedValue = haskellifyConstructor . aesonValueToName
       createConstructorForSchemaWithFixedValue =
         (`normalC` [])
           . createConstructorNameForSchemaWithFixedValue
