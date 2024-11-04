@@ -371,19 +371,23 @@ defineOneOfSchema :: Text -> Text -> [OAS.Schema] -> OAM.Generator TypeWithDecla
 defineOneOfSchema schemaName description schemas = do
   when (null schemas) $ OAM.logWarning "oneOf does not contain any sub-schemas and will therefore be defined as a void type"
   settings <- OAM.getSettings
-  let name = haskellifyName (OAO.settingConvertToCamelCase settings) True $ schemaName <> "Variants"
+  let haskellifyConstructor = haskellifyName (OAO.settingConvertToCamelCase settings) True
+      name = haskellifyConstructor $ schemaName <> "Variants"
       fixedValueStrategy = OAO.settingFixedValueStrategy settings
-      (schemas', schemasWithFixedValues) = extractSchemasWithFixedValues fixedValueStrategy schemas
-      indexedSchemas = zip schemas' ([1 ..] :: [Integer])
+      (schemas', fixedValueSchemas) = extractSchemasWithFixedValues fixedValueStrategy schemas
+      (schemas'', singleFieldedSchemas) = extractSchemasWithSingleField schemas' -- FIXME config param?
+      defineSingleFielded field = defineModelForSchemaNamed (schemaName <> haskellifyText (OAO.settingConvertToCamelCase settings) True field)
+      indexedSchemas = zip schemas'' ([1 ..] :: [Integer])
       defineIndexed schema index = defineModelForSchemaNamed (schemaName <> "OneOf" <> T.pack (show index)) schema
   OAM.logInfo $ "Define as oneOf named '" <> T.pack (nameBase name) <> "'"
-  variants <- mapM (uncurry defineIndexed) indexedSchemas
+  singleFieldedVariants <- mapM (uncurry defineSingleFielded) singleFieldedSchemas
+  indexedVariants <- mapM (uncurry defineIndexed) indexedSchemas
   path <- getCurrentPathEscaped
-  let variantDefinitions = vcat <$> mapM (fst . snd) variants
+  let variants = indexedVariants <> singleFieldedVariants
+      variantDefinitions = vcat <$> mapM (fst . snd) variants
       dependencies = Set.unions $ fmap (snd . snd) variants
       types = fmap fst variants
       indexedTypes = zip types ([1 ..] :: [Integer])
-      haskellifyConstructor = haskellifyName (OAO.settingConvertToCamelCase settings) True
       getConstructorName (typ, n) = do
         t <- typ
         let suffix = if OAO.settingUseNumberedVariantConstructors settings then "Variant" <> T.pack (show n) else typeToSuffix t
@@ -401,7 +405,7 @@ defineOneOfSchema schemaName description schemas = do
       createConstructorForSchemaWithFixedValue =
         (`normalC` [])
           . createConstructorNameForSchemaWithFixedValue
-      fixedValueComments = fmap (("Represents the JSON value @" <>) . (<> "@") . showAesonValue) schemasWithFixedValues
+      fixedValueComments = fmap (("Represents the JSON value @" <>) . (<> "@") . showAesonValue) fixedValueSchemas
       emptyCtx = pure []
       patternName = mkName "a"
       p = varP patternName
@@ -423,7 +427,7 @@ defineOneOfSchema schemaName description schemas = do
                         Aeson.Success $p -> pure $e
                         Aeson.Error $p -> fail $e
                       |]
-              case schemasWithFixedValues of
+              case fixedValueSchemas of
                 [] -> parserExpr
                 _ ->
                   multiIfE $
@@ -432,7 +436,7 @@ defineOneOfSchema schemaName description schemas = do
                           let constructorName = createConstructorNameForSchemaWithFixedValue value
                            in normalGE [|$(varE paramName) == $(liftAesonValue value)|] [|pure $(varE constructorName)|]
                       )
-                      schemasWithFixedValues
+                      fixedValueSchemas
                       <> [normalGE [|otherwise|] parserExpr]
          in funD
               (mkName "parseJSON")
@@ -461,7 +465,7 @@ defineOneOfSchema schemaName description schemas = do
               ]
       toJsonFns =
         fmap toJsonFnConstructor constructorNames
-          <> fmap toJsonFnFixedValues schemasWithFixedValues
+          <> fmap toJsonFnFixedValues fixedValueSchemas
       dataDefinition =
         ( Doc.generateHaddockComment
             [ "Defines the oneOf schema located at @" <> path <> "@ in the specification.",
@@ -478,7 +482,7 @@ defineOneOfSchema schemaName description schemas = do
             name
             []
             Nothing
-            (fmap createConstructorForSchemaWithFixedValue schemasWithFixedValues <> fmap createTypeConstruct indexedTypes)
+            (fmap createConstructorForSchemaWithFixedValue fixedValueSchemas <> fmap createTypeConstruct indexedTypes)
             [ derivClause
                 Nothing
                 [ conT ''Show,
@@ -656,6 +660,15 @@ extractSchemaWithFixedValue FixedValueStrategyExclude schema@(OAT.Concrete OAS.S
   [value] -> Right value
   _ -> Left schema
 extractSchemaWithFixedValue _ schema = Left schema
+
+extractSchemasWithSingleField :: [OAS.Schema] -> ([OAS.Schema], [(Text, OAS.Schema)])
+extractSchemasWithSingleField = E.partitionEithers . fmap extractSchemaWithSingleField
+
+extractSchemaWithSingleField :: OAS.Schema -> Either OAS.Schema (Text, OAS.Schema)
+extractSchemaWithSingleField schema@(OAT.Concrete OAS.SchemaObject {..}) = case Map.toList schemaObjectProperties of
+  [(field, _)] -> Right (field, schema)
+  _ -> Left schema
+extractSchemaWithSingleField schema = Left schema
 
 createMkFunction :: Name -> [(Text, Name)] -> Set.Set Text -> Q [VarBangType] -> Q Doc
 createMkFunction name propsWithNames required bangTypes = do
