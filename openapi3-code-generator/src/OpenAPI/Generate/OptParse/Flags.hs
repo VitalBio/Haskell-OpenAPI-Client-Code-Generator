@@ -47,7 +47,7 @@ data Flags = Flags
     flagWhiteListedSchemas :: !(Maybe [Text]),
     flagOutputAllSchemas :: !(Maybe Bool),
     flagFixedValueStrategy :: !(Maybe FixedValueStrategy),
-    flagUseShortNames :: !(Maybe Bool)
+    flagUseSingleFieldNames :: !(Maybe Bool)
   }
   deriving (Show, Eq)
 
@@ -88,7 +88,7 @@ parseFlags =
     <*> parseFlagWhiteListedSchemas
     <*> parseFlagOutputAllSchemas
     <*> parseFlagFixedValueStrategy
-    <*> parseFlagUseShortNames
+    <*> parseFlagUseSingleFieldNames
 
 parseFlagConfiguration :: Parser (Maybe Text)
 parseFlagConfiguration =
@@ -385,6 +385,6 @@ parseFlagFixedValueStrategy =
           long "fixed-value-strategy"
         ]
 
-parseFlagUseShortNames :: Parser (Maybe Bool)
-parseFlagUseShortNames =
-  booleanFlag "Shorten types and fields wherever possible" "use-short-names" Nothing
+parseFlagUseSingleFieldNames :: Parser (Maybe Bool)
+parseFlagUseSingleFieldNames =
+  booleanFlag "Instead of numbering oneof branches as OneOfN, name oneof branches after a single field where possible" "use-single-field-names" Nothing

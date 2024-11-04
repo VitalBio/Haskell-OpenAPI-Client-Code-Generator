@@ -112,8 +112,9 @@ data Settings = Settings
     -- This setting allows to change this behavior by including all fixed value
     -- fields instead ("include" strategy), i.e. just not trying to do anything smart.
     settingFixedValueStrategy :: !FixedValueStrategy,
-    -- | Shorten types and fields where possible.
-    settingUseShortNames :: !Bool
+    -- | Instead of numbering oneof branches as OneOfN, name oneof branches after a single field
+    -- where possible.
+    settingUseSingleFieldNames :: !Bool
   }
   deriving (Show, Eq)
 
@@ -160,7 +161,7 @@ combineToSettings Flags {..} mConf configurationFilePath = do
       settingWhiteListedSchemas = fromMaybe [] $ flagWhiteListedSchemas <|> mc configWhiteListedSchemas
       settingOutputAllSchemas = fromMaybe False $ flagOutputAllSchemas <|> mc configOutputAllSchemas
       settingFixedValueStrategy = fromMaybe FixedValueStrategyExclude $ flagFixedValueStrategy <|> mc configFixedValueStrategy
-      settingUseShortNames = fromMaybe False $ flagUseShortNames <|> mc configUseShortNames
+      settingUseSingleFieldNames = fromMaybe False $ flagUseSingleFieldNames <|> mc configUseSingleFieldNames
 
   pure Settings {..}
   where

@@ -375,9 +375,9 @@ defineOneOfSchema schemaName description schemas = do
   let haskellifyConstructor = haskellifyName (OAO.settingConvertToCamelCase settings) True
       name = haskellifyConstructor $ schemaName <> "Variants"
       fixedValueStrategy = OAO.settingFixedValueStrategy settings
-      useShortNames = OAO.settingUseShortNames settings
+      useSingleFieldNames = OAO.settingUseSingleFieldNames settings
       (schemas', fixedValueSchemas) = extractSchemasWithFixedValues fixedValueStrategy schemas
-      (schemas'', singleFieldedSchemas) = if useShortNames then extractSchemasWithSingleField schemas' else (schemas', [])
+      (schemas'', singleFieldedSchemas) = if useSingleFieldNames then extractSchemasWithSingleField schemas' else (schemas', [])
       defineSingleFielded field = defineModelForSchemaNamed (schemaName <> haskellifyText (OAO.settingConvertToCamelCase settings) True field)
       indexedSchemas = zip schemas'' ([1 ..] :: [Integer])
       defineIndexed schema index = defineModelForSchemaNamed (schemaName <> "OneOf" <> T.pack (show index)) schema
@@ -621,12 +621,9 @@ defineObjectModelForSchema strategy schemaName schema =
           name = haskellifyName convertToCamelCase True schemaName
           required = OAS.schemaObjectRequired schema
           fixedValueStrategy = OAO.settingFixedValueStrategy settings
-          useShortNames = OAO.settingUseShortNames settings
           (props, propsWithFixedValues) = extractPropertiesWithFixedValues fixedValueStrategy required $ Map.toList $ OAS.schemaObjectProperties schema
-          propFields = case props of
-            [(propName, subschema)] | useShortNames -> [(propName, toField convertToCamelCase propName schemaName subschema required)]
-            _ -> flip fmap props $ \(propName, subschema) ->
-              (propName, toField convertToCamelCase propName (schemaName <> uppercaseFirstText propName) subschema required)
+          propFields = flip fmap props $ \(propName, subschema) ->
+            (propName, toField convertToCamelCase propName (schemaName <> uppercaseFirstText propName) subschema required)
           emptyCtx = pure []
       OAM.logInfo $ "Define as record named '" <> T.pack (nameBase name) <> "'"
       (bangTypes, propertyContent, propertyDependencies) <- propertiesToBangTypes propFields
