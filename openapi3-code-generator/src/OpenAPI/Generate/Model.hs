@@ -374,8 +374,9 @@ defineOneOfSchema schemaName description schemas = do
   let haskellifyConstructor = haskellifyName (OAO.settingConvertToCamelCase settings) True
       name = haskellifyConstructor $ schemaName <> "Variants"
       fixedValueStrategy = OAO.settingFixedValueStrategy settings
+      useShortNames = OAO.settingUseShortNames settings
       (schemas', fixedValueSchemas) = extractSchemasWithFixedValues fixedValueStrategy schemas
-      (schemas'', singleFieldedSchemas) = extractSchemasWithSingleField schemas' -- FIXME config param?
+      (schemas'', singleFieldedSchemas) = if useShortNames then extractSchemasWithSingleField schemas' else (schemas', [])
       defineSingleFielded field = defineModelForSchemaNamed (schemaName <> haskellifyText (OAO.settingConvertToCamelCase settings) True field)
       indexedSchemas = zip schemas'' ([1 ..] :: [Integer])
       defineIndexed schema index = defineModelForSchemaNamed (schemaName <> "OneOf" <> T.pack (show index)) schema
@@ -390,15 +391,19 @@ defineOneOfSchema schemaName description schemas = do
       indexedTypes = zip types ([1 ..] :: [Integer])
       getConstructorName (typ, n) = do
         t <- typ
-        let suffix = if OAO.settingUseNumberedVariantConstructors settings then "Variant" <> T.pack (show n) else typeToSuffix t
-        pure $ haskellifyConstructor suffix
+        let prefix = if useShortNames then "" else schemaName
+            suffix = if OAO.settingUseNumberedVariantConstructors settings then "Variant" <> T.pack (show n) else typeToSuffix t
+        pure $ haskellifyConstructor $ prefix <> suffix
       constructorNames = fmap getConstructorName indexedTypes
       createTypeConstruct (typ, n) = do
         t <- typ
         bang' <- bang noSourceUnpackedness noSourceStrictness
         haskellifiedName <- getConstructorName (typ, n)
         normalC haskellifiedName [pure (bang', t)]
-      createConstructorNameForSchemaWithFixedValue = haskellifyConstructor . aesonValueToName
+      createConstructorNameForSchemaWithFixedValue =
+        haskellifyConstructor
+          . (if useShortNames then id else (schemaName <>))
+          . aesonValueToName
       createConstructorForSchemaWithFixedValue =
         (`normalC` [])
           . createConstructorNameForSchemaWithFixedValue
@@ -769,6 +774,7 @@ createFromJSONImplementation objectName recordNames required =
 propertiesToBangTypes :: Text -> [(Text, OAS.Schema)] -> Set.Set Text -> OAM.Generator BangTypesSelfDefined
 propertiesToBangTypes _ [] _ = pure (pure [], emptyDoc, Set.empty)
 propertiesToBangTypes schemaName props required = OAM.nested "properties" $ do
+  useShortNames <- OAM.getSetting OAO.settingUseShortNames
   propertySuffix <- OAM.getSetting OAO.settingPropertyTypeSuffix
   convertToCamelCase <- OAM.getSetting OAO.settingConvertToCamelCase
   let createBang :: Bool -> Text -> Q Type -> Q VarBangType
@@ -798,7 +804,7 @@ propertiesToBangTypes schemaName props required = OAM.nested "properties" $ do
             Set.union dependencies nextDependencies
           )
   case props of
-    [single] -> do
+    [single] | useShortNames -> do
       (varBang, content, dependencies) <- propToBangType False single
       pure (fmap pure varBang, content, dependencies)
     _ -> foldl foldFn (pure (pure [], emptyDoc, Set.empty)) props
