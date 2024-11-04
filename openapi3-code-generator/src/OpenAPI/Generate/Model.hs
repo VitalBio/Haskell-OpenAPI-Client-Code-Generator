@@ -391,9 +391,8 @@ defineOneOfSchema schemaName description schemas = do
       indexedTypes = zip types ([1 ..] :: [Integer])
       getConstructorName (typ, n) = do
         t <- typ
-        let prefix = if useShortNames then "" else schemaName
-            suffix = if OAO.settingUseNumberedVariantConstructors settings then "Variant" <> T.pack (show n) else typeToSuffix t
-        pure $ haskellifyConstructor $ prefix <> suffix
+        let suffix = if OAO.settingUseNumberedVariantConstructors settings then "Variant" <> T.pack (show n) else typeToSuffix t
+        pure $ haskellifyConstructor $ schemaName <> suffix
       constructorNames = fmap getConstructorName indexedTypes
       createTypeConstruct (typ, n) = do
         t <- typ
@@ -402,7 +401,7 @@ defineOneOfSchema schemaName description schemas = do
         normalC haskellifiedName [pure (bang', t)]
       createConstructorNameForSchemaWithFixedValue =
         haskellifyConstructor
-          . (if useShortNames then id else (schemaName <>))
+          . (schemaName <>)
           . aesonValueToName
       createConstructorForSchemaWithFixedValue =
         (`normalC` [])
