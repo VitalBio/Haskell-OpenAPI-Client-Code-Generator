@@ -881,6 +881,7 @@ getSchemaType OAO.Settings {settingUseDateTypesAsString = True} OAS.SchemaObject
 getSchemaType OAO.Settings {settingUseDateTypesAsString = True} OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString, schemaObjectFormat = Just "date-time"} = ''OC.JsonDateTime
 getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString} = ''Text
 getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeBool} = ''Bool
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeNull} = ''()
 getSchemaType _ OAS.SchemaObject {} = ''Text
 
 getCurrentPathEscaped :: OAM.Generator Text

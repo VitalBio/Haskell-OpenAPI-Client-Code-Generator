@@ -161,6 +161,7 @@ data SchemaType
   | SchemaTypeBool
   | SchemaTypeObject
   | SchemaTypeArray
+  | SchemaTypeNull
   deriving (Show, Eq, Ord, Generic)
 
 instance FromJSON SchemaType where
@@ -170,6 +171,7 @@ instance FromJSON SchemaType where
   parseJSON (String "boolean") = pure SchemaTypeBool
   parseJSON (String "array") = pure SchemaTypeArray
   parseJSON (String "object") = pure SchemaTypeObject
+  parseJSON (String "null") = pure SchemaTypeNull
   parseJSON (String x) = fail $ "Only types integer, string, number, boolean, array and object are supported but got: " <> T.unpack x
   parseJSON _ = fail "type must be of type string"
 

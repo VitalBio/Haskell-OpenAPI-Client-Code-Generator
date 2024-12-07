@@ -62,17 +62,20 @@ data UpdatePetWithFormRequestBody = UpdatePetWithFormRequestBody {
   updatePetWithFormRequestBodyName :: (GHC.Maybe.Maybe Data.Text.Internal.Text)
   -- | status: Updated status of the pet
   , updatePetWithFormRequestBodyStatus :: (GHC.Maybe.Maybe Data.Text.Internal.Text)
+  -- | unit: Unit type
+  , updatePetWithFormRequestBodyUnit :: (GHC.Maybe.Maybe GHC.Tuple.Prim.())
   } deriving (GHC.Show.Show
   , GHC.Classes.Eq)
 instance Data.Aeson.Types.ToJSON.ToJSON UpdatePetWithFormRequestBody
-    where {toJSON obj = Data.Aeson.Types.Internal.object (Data.Foldable.concat (Data.Maybe.maybe GHC.Base.mempty (GHC.Base.pure GHC.Base.. ("name" Data.Aeson.Types.ToJSON..=)) (updatePetWithFormRequestBodyName obj) : Data.Maybe.maybe GHC.Base.mempty (GHC.Base.pure GHC.Base.. ("status" Data.Aeson.Types.ToJSON..=)) (updatePetWithFormRequestBodyStatus obj) : GHC.Base.mempty));
-           toEncoding obj = Data.Aeson.Encoding.Internal.pairs (GHC.Base.mconcat (Data.Foldable.concat (Data.Maybe.maybe GHC.Base.mempty (GHC.Base.pure GHC.Base.. ("name" Data.Aeson.Types.ToJSON..=)) (updatePetWithFormRequestBodyName obj) : Data.Maybe.maybe GHC.Base.mempty (GHC.Base.pure GHC.Base.. ("status" Data.Aeson.Types.ToJSON..=)) (updatePetWithFormRequestBodyStatus obj) : GHC.Base.mempty)))}
+    where {toJSON obj = Data.Aeson.Types.Internal.object (Data.Foldable.concat (Data.Maybe.maybe GHC.Base.mempty (GHC.Base.pure GHC.Base.. ("name" Data.Aeson.Types.ToJSON..=)) (updatePetWithFormRequestBodyName obj) : Data.Maybe.maybe GHC.Base.mempty (GHC.Base.pure GHC.Base.. ("status" Data.Aeson.Types.ToJSON..=)) (updatePetWithFormRequestBodyStatus obj) : Data.Maybe.maybe GHC.Base.mempty (GHC.Base.pure GHC.Base.. ("unit" Data.Aeson.Types.ToJSON..=)) (updatePetWithFormRequestBodyUnit obj) : GHC.Base.mempty));
+           toEncoding obj = Data.Aeson.Encoding.Internal.pairs (GHC.Base.mconcat (Data.Foldable.concat (Data.Maybe.maybe GHC.Base.mempty (GHC.Base.pure GHC.Base.. ("name" Data.Aeson.Types.ToJSON..=)) (updatePetWithFormRequestBodyName obj) : Data.Maybe.maybe GHC.Base.mempty (GHC.Base.pure GHC.Base.. ("status" Data.Aeson.Types.ToJSON..=)) (updatePetWithFormRequestBodyStatus obj) : Data.Maybe.maybe GHC.Base.mempty (GHC.Base.pure GHC.Base.. ("unit" Data.Aeson.Types.ToJSON..=)) (updatePetWithFormRequestBodyUnit obj) : GHC.Base.mempty)))}
 instance Data.Aeson.Types.FromJSON.FromJSON UpdatePetWithFormRequestBody
-    where {parseJSON = Data.Aeson.Types.FromJSON.withObject "UpdatePetWithFormRequestBody" (\obj -> (GHC.Base.pure UpdatePetWithFormRequestBody GHC.Base.<*> (obj Data.Aeson.Types.FromJSON..:! "name")) GHC.Base.<*> (obj Data.Aeson.Types.FromJSON..:! "status"))}
+    where {parseJSON = Data.Aeson.Types.FromJSON.withObject "UpdatePetWithFormRequestBody" (\obj -> ((GHC.Base.pure UpdatePetWithFormRequestBody GHC.Base.<*> (obj Data.Aeson.Types.FromJSON..:! "name")) GHC.Base.<*> (obj Data.Aeson.Types.FromJSON..:! "status")) GHC.Base.<*> (obj Data.Aeson.Types.FromJSON..:! "unit"))}
 -- | Create a new 'UpdatePetWithFormRequestBody' with all required fields.
 mkUpdatePetWithFormRequestBody :: UpdatePetWithFormRequestBody
 mkUpdatePetWithFormRequestBody = UpdatePetWithFormRequestBody{updatePetWithFormRequestBodyName = GHC.Maybe.Nothing,
-                                                              updatePetWithFormRequestBodyStatus = GHC.Maybe.Nothing}
+                                                              updatePetWithFormRequestBodyStatus = GHC.Maybe.Nothing,
+                                                              updatePetWithFormRequestBodyUnit = GHC.Maybe.Nothing}
 -- | Represents a response of the operation 'updatePetWithForm'.
 -- 
 -- The response constructor is chosen by the status code of the response. If no case matches (no specific case for the response code, no range case, no default case), 'UpdatePetWithFormResponseError' is used.

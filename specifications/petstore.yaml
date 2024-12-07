@@ -209,6 +209,9 @@ paths:
                 status:
                   description: Updated status of the pet
                   type: string
+                unit:
+                  description: Unit type
+                  type: 'null'
     delete:
       tags:
       - pet
@@ -699,4 +702,3 @@ components:
       type: apiKey
       name: api_key
       in: header
-
