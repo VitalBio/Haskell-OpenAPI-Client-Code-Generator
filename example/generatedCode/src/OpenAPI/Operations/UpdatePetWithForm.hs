@@ -63,7 +63,7 @@ data UpdatePetWithFormRequestBody = UpdatePetWithFormRequestBody {
   -- | status: Updated status of the pet
   , updatePetWithFormRequestBodyStatus :: (GHC.Maybe.Maybe Data.Text.Internal.Text)
   -- | unit: Unit type
-  , updatePetWithFormRequestBodyUnit :: (GHC.Maybe.Maybe GHC.Tuple.Prim.())
+  , updatePetWithFormRequestBodyUnit :: (GHC.Maybe.Maybe ())
   } deriving (GHC.Show.Show
   , GHC.Classes.Eq)
 instance Data.Aeson.Types.ToJSON.ToJSON UpdatePetWithFormRequestBody

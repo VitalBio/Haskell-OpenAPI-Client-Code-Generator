@@ -247,7 +247,7 @@ defineModelForSchemaConcreteIgnoreEnum strategy schemaName schema = do
             (_, _, False) -> OAM.nested "anyOf" $ defineAnyOfSchema strategy schemaName schemaDescription $ OAS.schemaObjectAnyOf schema
             _ -> defineObjectModelForSchema strategy schemaName schema
     _ ->
-      typeAliasing $ pure (varT $ getSchemaType settings schema, (emptyDoc, Set.empty))
+      typeAliasing $ pure (getSchemaType settings schema, (emptyDoc, Set.empty))
 
 defineEnumModel :: Text -> OAS.SchemaObject -> [Aeson.Value] -> OAM.Generator TypeWithDeclaration
 defineEnumModel schemaName schema enumValues = do
@@ -865,24 +865,26 @@ getConstraintDescriptionsOfSchema schema =
           showConstraintSurrounding "Must have a minimum of " " properties" $ schema >>= OAS.schemaObjectMinProperties
         ]
 
--- | Extracts the 'Name' of a 'OAS.SchemaObject' which should be used for primitive types
-getSchemaType :: OAO.Settings -> OAS.SchemaObject -> Name
-getSchemaType OAO.Settings {settingUseIntWithArbitraryPrecision = True} OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeInteger} = ''Integer
-getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeInteger, schemaObjectFormat = Just "int32"} = ''Int.Int32
-getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeInteger, schemaObjectFormat = Just "int64"} = ''Int.Int64
-getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeInteger} = ''Int
-getSchemaType OAO.Settings {settingUseFloatWithArbitraryPrecision = True} OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeNumber} = ''Scientific.Scientific
-getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeNumber, schemaObjectFormat = Just "float"} = ''Float
-getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeNumber, schemaObjectFormat = Just "double"} = ''Double
-getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeNumber} = ''Double
-getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString, schemaObjectFormat = Just "byte"} = ''OC.JsonByteString
-getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString, schemaObjectFormat = Just "binary"} = ''OC.JsonByteString
-getSchemaType OAO.Settings {settingUseDateTypesAsString = True} OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString, schemaObjectFormat = Just "date"} = ''Day
-getSchemaType OAO.Settings {settingUseDateTypesAsString = True} OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString, schemaObjectFormat = Just "date-time"} = ''OC.JsonDateTime
-getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString} = ''Text
-getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeBool} = ''Bool
-getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeNull} = ''()
-getSchemaType _ OAS.SchemaObject {} = ''Text
+-- | Extracts the 'Name' of a 'OAS.SchemaObject' which should be used for primitive types. However,
+-- since GHC for some reason interprets `GHC.Tuple.Prim.()` as `GHC.Tuple.Prim . ()` (function
+-- composition), instead use `tupleT 0` to convince the code generator to do the right thing.
+getSchemaType :: OAO.Settings -> OAS.SchemaObject -> Q Type
+getSchemaType OAO.Settings {settingUseIntWithArbitraryPrecision = True} OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeInteger} = varT ''Integer
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeInteger, schemaObjectFormat = Just "int32"} = varT ''Int.Int32
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeInteger, schemaObjectFormat = Just "int64"} = varT ''Int.Int64
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeInteger} = varT ''Int
+getSchemaType OAO.Settings {settingUseFloatWithArbitraryPrecision = True} OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeNumber} = varT ''Scientific.Scientific
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeNumber, schemaObjectFormat = Just "float"} = varT ''Float
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeNumber, schemaObjectFormat = Just "double"} = varT ''Double
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeNumber} = varT ''Double
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString, schemaObjectFormat = Just "byte"} = varT ''OC.JsonByteString
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString, schemaObjectFormat = Just "binary"} = varT ''OC.JsonByteString
+getSchemaType OAO.Settings {settingUseDateTypesAsString = True} OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString, schemaObjectFormat = Just "date"} = varT ''Day
+getSchemaType OAO.Settings {settingUseDateTypesAsString = True} OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString, schemaObjectFormat = Just "date-time"} = varT ''OC.JsonDateTime
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeString} = varT ''Text
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeBool} = varT ''Bool
+getSchemaType _ OAS.SchemaObject {schemaObjectType = OAS.SchemaTypeNull} = tupleT 0
+getSchemaType _ OAS.SchemaObject {} = varT ''Text
 
 getCurrentPathEscaped :: OAM.Generator Text
 getCurrentPathEscaped = Doc.escapeText . T.intercalate "." <$> OAM.getCurrentPath
